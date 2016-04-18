@@ -1,5 +1,3 @@
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -16,21 +14,25 @@ public class Battleship implements Game {
 
     private Player player1;
     private Player player2;
-    private ArrayList<ArrayList<String>> player1ShipCoordinates = new ArrayList<ArrayList<String>>();
-    private ArrayList<ArrayList<String>> player2ShipCoordinates = new ArrayList<ArrayList<String>>();
-    private ArrayList<String> player1Guesses = new ArrayList<String>();
-    private ArrayList<String> player2Guesses = new ArrayList<String>();
-    private ArrayList<String> player1Hits = new ArrayList<String>();
-    private ArrayList<String> player2Hits = new ArrayList<String>();
+    private ArrayList<ArrayList<String>> player1ShipCoordinates = new ArrayList<>(); //[[A1,N]]
+    private ArrayList<ArrayList<String>> player2ShipCoordinates = new ArrayList<>();
+    private ArrayList<String> player1Guesses = new ArrayList<>();
+    private ArrayList<String> player2Guesses = new ArrayList<>();
+    private ArrayList<String> player1Hits = new ArrayList<>();
+    private ArrayList<String> player2Hits = new ArrayList<>();
     private int[] player1ShipHits = new int[5];
     private int[] player2ShipHits = new int[5];
     private int[] player1ShipsLeft;
     private int[] player2ShipsLeft;
 
-    public Battleship (Player player1, Player player2)
-    {
+    private enum Phases {PLACEMENT, GUESSING}
+
+    private Phases phase = Phases.PLACEMENT;
+
+    public Battleship(Player player1, Player player2) {
         this.player1 = player1;
         this.player2 = player2;
+        this.currentPlayer = player1;
 
         //[["A1","N"]]
     }
@@ -38,22 +40,70 @@ public class Battleship implements Game {
     //hitsLeft(ship : int)
 
 
+    private boolean wasHit(Player player, String guess) {
+        final int AIRCRAFT = 0;
+        final int BATTLESHIP = 1;
+        final int SUBMARINE = 2;
+        final int DESTROYER = 3;
+        final int PATROL = 4;
+        ArrayList playerShips = (player.getPlayerNumber() == 1) ? player1ShipCoordinates : player2ShipCoordinates;
+        ArrayList shipDetails;
+        String shipCoord;
+        String shipDirection;
+        boolean shipWasHit = false;
+        int ship = 0;
 
+        while (ship < playerShips.size() && !shipWasHit) {
 
-    private boolean wasHit(Player player, String coordinate)
-    {
-        //make code to return t/f if it was hit
+            shipDetails = (ArrayList) playerShips.get(ship);
+            shipCoord = shipDetails.get(0).toString();
+            shipDirection = shipDetails.get(1).toString();
+
+            switch (ship) {
+                case AIRCRAFT:
+                    shipWasHit = Ship.wasShipHit(Ship.Ships.AIRCRAFT, guess, shipCoord, shipDirection);
+                    break;
+                case BATTLESHIP:
+                    shipWasHit = Ship.wasShipHit(Ship.Ships.BATTLESHIP, guess, shipCoord, shipDirection);
+                    break;
+                case SUBMARINE:
+                    shipWasHit = Ship.wasShipHit(Ship.Ships.SUBMARINE, guess, shipCoord, shipDirection);
+                    break;
+                case DESTROYER:
+                    shipWasHit = Ship.wasShipHit(Ship.Ships.DESTROYER, guess, shipCoord, shipDirection);
+                    break;
+                case PATROL:
+                    shipWasHit = Ship.wasShipHit(Ship.Ships.PATROL, guess, shipCoord, shipDirection);
+                    break;
+            }
+
+            ship++;
+        }
+
         return false;
     }
 
-    private boolean shipsLeft(Player player)
-    {
+    private boolean shipsLeft(Player player) {
         //make code to determine how many ships are left
         return false;
     }
 
     @Override
     public void nextTurn() {
+        while (turns < 5) {
+            if (currentPlayer.getType() == Player.playerType.COMPUTER) {
+                placeComputerShips(currentPlayer);
+                currentPlayer = player2;
+            } else {
+                placeHumanShips(currentPlayer);
+                turns++;
+            }
+
+        }
+        if (phase == Phases.PLACEMENT) {
+            phase = Phases.GUESSING;
+        }
+
         // TODO: 4/13/16 Determine if currentplayer is human/computer and call appropriate method. Switch current player.
         // TODO: 4/13/16 Switch the game phase after ships are placed after start after guesses
 
@@ -64,32 +114,66 @@ public class Battleship implements Game {
     }
 
     private void placeHumanShips(Player player) {
+        Ship.Ships ship;
+        switch (turns) {
+            case 0:
+                ship = Ship.Ships.AIRCRAFT;
+                break;
+            case 1:
+                ship = Ship.Ships.BATTLESHIP;
+                break;
+            case 2:
+                ship = Ship.Ships.SUBMARINE;
+                break;
+            case 3:
+                ship = Ship.Ships.DESTROYER;
+                break;
+            case 4:
+                ship = Ship.Ships.PATROL;
+                break;
+            default:
+                throw new IllegalArgumentException("turns > 4 should never happen in placeHumanShips method");
+        }
+
+
+        Scanner input = new Scanner(System.in);
+        System.out.printf("Input Coordinates For %s : ", ship.getName());
+        String coordinates = input.nextLine();
+        System.out.printf("Input A Cardinal Direction (NESW) To Place Your %s : ", ship.getName());
+        String direction = input.nextLine();
+
+        if (!Ship.areCoordinatesValid(ship, coordinates, direction)) {
+            System.out.println("The coordinates or direction you entered were not valid please enter a valid response.");
+            placeHumanShips(player);
+        }
+
+        ArrayList<String> playerCoordinates = new ArrayList<>();
+        playerCoordinates.add(coordinates);
+        playerCoordinates.add(direction);
+
+        boolean overlap = false;
+
+        if (player.getPlayerNumber() == 1) {
+            for (ArrayList<String> player1ShipCoordinate : player1ShipCoordinates) {
+                overlap = Ship.wasShipHit(ship, coordinates, player1ShipCoordinate.get(0), player1ShipCoordinate.get(1));
+            }
+            if (overlap) {
+                System.out.println("Your requested coordinates overlap with an existing ship. Please select again.");
+                placeHumanShips(player);
+            }
+            player1ShipCoordinates.add(playerCoordinates);
+        } else {
+            System.out.println("Your requested coordinates overlap with an existing ship. Please select again.");
+            for (ArrayList<String> player2ShipCoordinate : player2ShipCoordinates) {
+                overlap = Ship.wasShipHit(ship, coordinates, player2ShipCoordinate.get(0), player2ShipCoordinate.get(1));
+            }
+            if (overlap) {
+                placeHumanShips(player);
+            }
+            player2ShipCoordinates.add(playerCoordinates);
+        }
+
         // TODO: 4/13/16 Some input to request human placement. Should have boundries. Should take coord. and Direction (NESW)
-    }
-
-    private boolean aircraftWasHit(Player player) {
-        // TODO: 4/13/16 Determine if the aircraft was hit. Should implement Player.getPlayerNumber()
-        return false;
-    }
-
-    private boolean battleshipWasHit(Player player) {
-        // TODO: 4/13/16 Determine if the battleship was hit. Should implement Player.getPlayerNumber()
-        return false;
-    }
-
-    private boolean submarineWasHit(Player player) {
-        // TODO: 4/13/16 Determine if the submarine was hit. Should implement Player.getPlayerNumber()
-        return false;
-    }
-
-    private boolean destroyerWasHit(Player player) {
-        // TODO: 4/13/16 Determine if the destroyer was hit. Should implement Player.getPlayerNumber()
-        return false;
-    }
-
-    private boolean patrolWasHit(Player player) {
-        // TODO: 4/13/16 Determine if the patrol was hit. Should implement Player.getPlayerNumber()
-        return false;
     }
 
     private void drawBoard() {
