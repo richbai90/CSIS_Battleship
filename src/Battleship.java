@@ -40,7 +40,7 @@ public class Battleship implements Game {
     //hitsLeft(ship : int)
 
 
-    private boolean wasHit(Player player, String guess) {
+    public boolean wasHit(Player player, String guess) {
         final int AIRCRAFT = 0;
         final int BATTLESHIP = 1;
         final int SUBMARINE = 2;
@@ -90,7 +90,7 @@ public class Battleship implements Game {
 
     @Override
     public void nextTurn() {
-        while (turns < 5) {
+        while (turns < 5 && phase == Phases.PLACEMENT) {
             if (currentPlayer.getType() == Player.playerType.COMPUTER) {
                 placeComputerShips(currentPlayer);
                 currentPlayer = player2;
@@ -100,12 +100,20 @@ public class Battleship implements Game {
             }
 
         }
-        if (phase == Phases.PLACEMENT) {
-            phase = Phases.GUESSING;
+
+        if (currentPlayer == player1 && phase == Phases.PLACEMENT) {
+            currentPlayer = player2;
+            turns = 0;
+            nextTurn();
         }
 
-        // TODO: 4/13/16 Determine if currentplayer is human/computer and call appropriate method. Switch current player.
-        // TODO: 4/13/16 Switch the game phase after ships are placed after start after guesses
+        if (phase == Phases.PLACEMENT) {
+            currentPlayer = player1;
+            phase = Phases.GUESSING;
+            turns = 0;
+        }
+
+        // TODO: 4/18/16 Implement guessing portion of the game
 
     }
 
@@ -163,11 +171,11 @@ public class Battleship implements Game {
             }
             player1ShipCoordinates.add(playerCoordinates);
         } else {
-            System.out.println("Your requested coordinates overlap with an existing ship. Please select again.");
             for (ArrayList<String> player2ShipCoordinate : player2ShipCoordinates) {
                 overlap = Ship.wasShipHit(ship, coordinates, player2ShipCoordinate.get(0), player2ShipCoordinate.get(1));
             }
             if (overlap) {
+                System.out.println("Your requested coordinates overlap with an existing ship. Please select again.");
                 placeHumanShips(player);
             }
             player2ShipCoordinates.add(playerCoordinates);
