@@ -44,12 +44,14 @@ public abstract class Ship {
     private static boolean wasShipHit(int length, String guess, String coords, String direction) {
         Integer column = Integer.parseInt(coords.substring(1));
         char row = coords.toUpperCase().toCharArray()[0];
+        char newRow = row;
         String possibleCoords;
         int i = 0;
         switch (direction.toUpperCase()) {
             case "N":
                 while (i < length) {
-                    possibleCoords = String.valueOf(row - i) + column.toString();
+                    newRow = (char) (row - i);
+                    possibleCoords = String.valueOf(newRow) + column.toString();
                     if (possibleCoords.equalsIgnoreCase(guess)) {
                         return true;
                     }
@@ -67,7 +69,8 @@ public abstract class Ship {
                 break;
             case "S":
                 while (i < length) {
-                    possibleCoords = String.valueOf(row + i) + column.toString();
+                    newRow = (char) (row + i);
+                    possibleCoords = String.valueOf(newRow) + column;
                     if (possibleCoords.equalsIgnoreCase(guess)) {
                         return true;
                     }

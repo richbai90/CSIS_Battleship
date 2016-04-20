@@ -25,6 +25,14 @@ public class Battleship implements Game {
     private int[] player1ShipsLeft;
     private int[] player2ShipsLeft;
 
+    public ArrayList<ArrayList<String>> getCurrentPlayerShips() {
+        if (currentPlayer.getPlayerNumber() == 1) {
+            return player1ShipCoordinates;
+        }
+
+        return player2ShipCoordinates;
+    }
+
     private enum Phases {PLACEMENT, GUESSING}
 
     private Phases phase = Phases.PLACEMENT;
@@ -46,8 +54,8 @@ public class Battleship implements Game {
         final int SUBMARINE = 2;
         final int DESTROYER = 3;
         final int PATROL = 4;
-        ArrayList playerShips = (player.getPlayerNumber() == 1) ? player1ShipCoordinates : player2ShipCoordinates;
-        ArrayList shipDetails;
+        ArrayList<ArrayList<String>> playerShips = (player.getPlayerNumber() == 1) ? player1ShipCoordinates : player2ShipCoordinates;
+        ArrayList<String> shipDetails;
         String shipCoord;
         String shipDirection;
         boolean shipWasHit = false;
@@ -55,9 +63,9 @@ public class Battleship implements Game {
 
         while (ship < playerShips.size() && !shipWasHit) {
 
-            shipDetails = (ArrayList) playerShips.get(ship);
-            shipCoord = shipDetails.get(0).toString();
-            shipDirection = shipDetails.get(1).toString();
+            shipDetails = playerShips.get(ship);
+            shipCoord = shipDetails.get(0);
+            shipDirection = shipDetails.get(1);
 
             switch (ship) {
                 case AIRCRAFT:
@@ -80,7 +88,7 @@ public class Battleship implements Game {
             ship++;
         }
 
-        return false;
+        return shipWasHit;
     }
 
     private boolean shipsLeft(Player player) {
@@ -90,13 +98,17 @@ public class Battleship implements Game {
 
     @Override
     public void nextTurn() {
+        if (currentPlayer.getType() == Player.playerType.HUMAN) {
+            drawBoard();
+        }
         while (turns < 5 && phase == Phases.PLACEMENT) {
             if (currentPlayer.getType() == Player.playerType.COMPUTER) {
                 placeComputerShips(currentPlayer);
-                currentPlayer = player2;
+                break;
             } else {
-                placeHumanShips(currentPlayer);
+                placeHumanShips();
                 turns++;
+                drawBoard();
             }
 
         }
@@ -121,7 +133,7 @@ public class Battleship implements Game {
         // TODO: 4/13/16 Some randomization to place and store the position of computer ships
     }
 
-    private void placeHumanShips(Player player) {
+    private void placeHumanShips() {
         Ship.Ships ship;
         switch (turns) {
             case 0:
@@ -145,47 +157,65 @@ public class Battleship implements Game {
 
 
         Scanner input = new Scanner(System.in);
-        System.out.printf("Input Coordinates For %s : ", ship.getName());
+        System.out.printf("Input Coordinates For %s (length : %s) : ", ship.getName(), ship.getLength());
         String coordinates = input.nextLine();
-        System.out.printf("Input A Cardinal Direction (NESW) To Place Your %s : ", ship.getName());
+        System.out.printf("Input A Cardinal Direction (NESW) To Place Your %s (length : %s) : ", ship.getName(), ship.getLength());
         String direction = input.nextLine();
 
-        if (!Ship.areCoordinatesValid(ship, coordinates, direction)) {
-            System.out.println("The coordinates or direction you entered were not valid please enter a valid response.");
-            placeHumanShips(player);
-        }
-
-        ArrayList<String> playerCoordinates = new ArrayList<>();
-        playerCoordinates.add(coordinates);
-        playerCoordinates.add(direction);
-
-        boolean overlap = false;
-
-        if (player.getPlayerNumber() == 1) {
-            for (ArrayList<String> player1ShipCoordinate : player1ShipCoordinates) {
-                overlap = Ship.wasShipHit(ship, coordinates, player1ShipCoordinate.get(0), player1ShipCoordinate.get(1));
-            }
-            if (overlap) {
-                System.out.println("Your requested coordinates overlap with an existing ship. Please select again.");
-                placeHumanShips(player);
-            }
-            player1ShipCoordinates.add(playerCoordinates);
-        } else {
-            for (ArrayList<String> player2ShipCoordinate : player2ShipCoordinates) {
-                overlap = Ship.wasShipHit(ship, coordinates, player2ShipCoordinate.get(0), player2ShipCoordinate.get(1));
-            }
-            if (overlap) {
-                System.out.println("Your requested coordinates overlap with an existing ship. Please select again.");
-                placeHumanShips(player);
-            }
-            player2ShipCoordinates.add(playerCoordinates);
+        if (validatePlacement(ship, coordinates, direction)) {
+            ArrayList<String> playerCoordinates = new ArrayList<>();
+            playerCoordinates.add(coordinates);
+            playerCoordinates.add(direction);
+            getCurrentPlayerShips().add(playerCoordinates);
         }
 
         // TODO: 4/13/16 Some input to request human placement. Should have boundries. Should take coord. and Direction (NESW)
     }
 
+    private boolean validatePlacement(Ship.Ships ship, String coordinates, String direction) {
+        if (!Ship.areCoordinatesValid(ship, coordinates, direction)) {
+            System.out.println("The coordinates or direction you entered were not valid please enter a valid response.");
+            placeHumanShips();
+        }
+
+        boolean overlap = wasHit(currentPlayer, coordinates);
+        if (overlap) {
+            System.out.println("Your requested coordinates overlap with an existing ship. Please select again.");
+            placeHumanShips();
+        }
+
+        return true;
+    }
+
     private void drawBoard() {
-        // TODO: 4/13/16 Should draw board in any scenario where board is to be drawn should be different if drawing first time should switch on game phase
+        String board = String.format("%s%n", "_____|_1_|_2_|_3_|_4_|_5_|_6_|_7_|_8_|_9_|_10_");
+        char row = 'A';
+        Integer column = 1;
+        String currentCoordinate;
+        String nextCol;
+        while (row <= 'J') {
+            column = 1;
+            currentCoordinate = String.valueOf(row) + column;
+            ArrayList<ArrayList<String>> ships = getCurrentPlayerShips();
+            String nextRow = String.format("__%s__|", String.valueOf(row));
+            while (column <= 10) {
+                if (wasHit(currentPlayer, currentCoordinate)) {
+                    nextCol = "_=_|";
+                    nextRow += nextCol;
+                    column++;
+                    currentCoordinate = String.valueOf(row) + column;
+                    continue;
+                }
+
+                nextRow += "___|";
+                ++column;
+                currentCoordinate = String.valueOf(row) + column;
+            }
+            board += String.format("%s%n", nextRow);
+            ++row;
+        }
+
+        System.out.print(board);
     }
 
     private void showMenu() {
