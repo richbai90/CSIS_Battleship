@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 /*****************************************
  * Author : rich
  * Date : 4/15/16
@@ -6,6 +8,7 @@
 // FIXME: 4/15/16
 
 public abstract class Ship {
+
     public static enum Ships {
         AIRCRAFT(5, "Aircraft Carrier"),
         BATTLESHIP(4, "Battleship"),
@@ -28,8 +31,28 @@ public abstract class Ship {
         public int getLength() {
             return length;
         }
-    }
 
+        public ArrayList<ArrayList<String>> getPossibleCoordinates() {
+            String[] directions = {"N","E","S","W"};
+            ArrayList<ArrayList<String>> possibleCoordinates = new ArrayList<>();
+            for(char row = 'A'; row <= 'J'; row++) {
+                Integer column = 1;
+                while(column <= 10) {
+                    String currentCoordinate = String.valueOf(row) + column;
+                    for(String direction : directions) {
+                        if(Ship.areCoordinatesValid(this.length,currentCoordinate,direction)) {
+                            ArrayList<String> newCoord = new ArrayList<>();
+                            newCoord.add(currentCoordinate);
+                            newCoord.add(direction);
+                            possibleCoordinates.add(newCoord);
+                        }
+                    }
+                }
+                row++;
+            }
+            return possibleCoordinates;
+        }
+    }
 
     public static boolean areCoordinatesValid(Ships ship, String coords, String direction) {
         boolean valid = false;
@@ -39,6 +62,27 @@ public abstract class Ship {
 
     public static boolean wasShipHit(Ships ship, String guess, String shipCoords, String shipDirection) {
         return areCoordinatesValid(ship, shipCoords, shipDirection) && wasShipHit(ship.length, guess, shipCoords, shipDirection);
+    }
+
+    public static Ships getShipByIndex(int i) {
+        switch (i) {
+            case 0:
+                return Ship.Ships.AIRCRAFT;
+            case 1:
+                return Ship.Ships.BATTLESHIP;
+            case 2:
+                return Ship.Ships.SUBMARINE;
+
+            case 3:
+                return Ship.Ships.DESTROYER;
+
+            case 4:
+                return Ship.Ships.PATROL;
+
+            default:
+                throw new IllegalArgumentException("Invalid selection enter a number between 0 and 4");
+
+        }
     }
 
     private static boolean wasShipHit(int length, String guess, String coords, String direction) {

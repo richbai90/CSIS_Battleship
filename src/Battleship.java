@@ -1,5 +1,7 @@
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.Scanner;
+import java.util.stream.Stream;
 
 /*****************************************
  * Author : rich
@@ -24,14 +26,6 @@ public class Battleship implements Game {
     private int[] player2ShipHits = new int[5];
     private int[] player1ShipsLeft;
     private int[] player2ShipsLeft;
-
-    public ArrayList<ArrayList<String>> getCurrentPlayerShips() {
-        if (currentPlayer.getPlayerNumber() == 1) {
-            return player1ShipCoordinates;
-        }
-
-        return player2ShipCoordinates;
-    }
 
     private enum Phases {PLACEMENT, GUESSING}
 
@@ -103,15 +97,16 @@ public class Battleship implements Game {
         }
         while (turns < 5 && phase == Phases.PLACEMENT) {
             if (currentPlayer.getType() == Player.playerType.COMPUTER) {
-                placeComputerShips(currentPlayer);
+                placeComputerShips();
                 break;
             } else {
                 placeHumanShips();
                 turns++;
                 drawBoard();
             }
-
         }
+
+        //[[A1,E],]
 
         if (currentPlayer == player1 && phase == Phases.PLACEMENT) {
             currentPlayer = player2;
@@ -123,38 +118,44 @@ public class Battleship implements Game {
             currentPlayer = player1;
             phase = Phases.GUESSING;
             turns = 0;
+            nextTurn();
         }
 
         // TODO: 4/18/16 Implement guessing portion of the game
 
-    }
-
-    private void placeComputerShips(Player player) {
-        // TODO: 4/13/16 Some randomization to place and store the position of computer ships
-    }
-
-    private void placeHumanShips() {
-        Ship.Ships ship;
-        switch (turns) {
-            case 0:
-                ship = Ship.Ships.AIRCRAFT;
-                break;
-            case 1:
-                ship = Ship.Ships.BATTLESHIP;
-                break;
-            case 2:
-                ship = Ship.Ships.SUBMARINE;
-                break;
-            case 3:
-                ship = Ship.Ships.DESTROYER;
-                break;
-            case 4:
-                ship = Ship.Ships.PATROL;
-                break;
-            default:
-                throw new IllegalArgumentException("turns > 4 should never happen in placeHumanShips method");
+        if(getCurrentPlayer().getType() == Player.playerType.HUMAN) {
+            humanTurn();
         }
 
+    }
+
+    //todo: This is so that erica can test validation and compare what she's doing with what rich did.
+
+//    public void placeComputerShips(Player player) {
+//        Ship.Ships ship;
+//        Random rand = new Random();
+//        for (int i = 0; i < 5; i++) {
+//            ship = Ship.getShipByIndex(i);
+//            ArrayList<ArrayList<String>> possibleCoords = ship.getPossibleCoordinates();
+//            //Remove all invalid placements
+//            for (int coord = 0; coord < possibleCoords.size(); coord++) {
+//                ArrayList<String> coordinate = possibleCoords.get(coord);
+//                if (!validatePlacement(ship, coordinate.get(0), coordinate.get(1))) {
+//                    possibleCoords.remove(coord);
+//                }
+//            }
+//
+//            ArrayList<String> randomPlacement = possibleCoords.get(rand.nextInt(possibleCoords.size()));
+//            getCurrentPlayerShips().add(randomPlacement);
+//          char row = (char) (rand.nextInt(10) + 65);
+//            Integer column = rand.nextInt(10);
+//            System.out.println(row);
+//        }
+//        // TODO: 4/13/16 Some randomization to place and store the position of computer ships
+//    }
+
+    private void placeHumanShips() {
+        Ship.Ships ship = Ship.getShipByIndex(turns);
 
         Scanner input = new Scanner(System.in);
         System.out.printf("Input Coordinates For %s (length : %s) : ", ship.getName(), ship.getLength());
@@ -187,10 +188,31 @@ public class Battleship implements Game {
         return true;
     }
 
+
+    private void placeComputerShips() {
+        // TODO: 4/13/16 Some randomization to place and store the position of computer ships
+        String compPlaceShips;
+        compPlaceShips = getRandomCompPlaceShips();
+    }
+
+    String getRandomCompPlaceShips() {
+        Random compPlaceShips = new Random();
+        char row = (char) (compPlaceShips.nextInt(10));
+        int column = compPlaceShips.nextInt(10) + 1;
+        return String.format("%c%d", row, column);
+        //getcurrentplayerships
+        //stored in an ArrayList coordinate and direction [A1, E]
+        //char cast to string for NESW
+        //String.valueOf(char) or String.format
+        //each array list need to be placed into currentplayer arraylist in correct order large to small
+
+    }
+
+
     private void drawBoard() {
         String board = String.format("%s%n", "_____|_1_|_2_|_3_|_4_|_5_|_6_|_7_|_8_|_9_|_10_");
         char row = 'A';
-        Integer column = 1;
+        Integer column;
         String currentCoordinate;
         String nextCol;
         while (row <= 'J') {
@@ -232,6 +254,34 @@ public class Battleship implements Game {
         return currentPlayer;
     }
 
+    public Player getNextPlayer() {
+        return (currentPlayer.getPlayerNumber() == 1) ? player2 : player1;
+    }
+
+    public ArrayList<ArrayList<String>> getCurrentPlayerShips() {
+        if (currentPlayer.getPlayerNumber() == 1) {
+            return player1ShipCoordinates;
+        }
+
+        return player2ShipCoordinates;
+    }
+
+    public ArrayList<String> getCurrentPlayerHits() {
+        if (currentPlayer.getPlayerNumber() == 1) {
+            return player1Hits;
+        }
+
+        return player2Hits;
+    }
+
+    public ArrayList<String> getCurrentPlayerGuesses() {
+        if (currentPlayer.getPlayerNumber() == 1) {
+            return player1Guesses;
+        }
+
+        return player2Guesses;
+    }
+
     @Override
     public int getTurns() {
         return turns;
@@ -246,11 +296,51 @@ public class Battleship implements Game {
 
     private void computerTurn() {
         // TODO: 4/13/16 Come up with some randomization for the computers turn
+        String compTurn;
+        compTurn = getRandomCompTurn();
+    }
+
+    String getRandomCompTurn() {
+        Random compGuess = new Random();
+        char row = (char) (compGuess.nextInt(10));
+        int column = compGuess.nextInt(10) + 1;
+        return String.format("%c%d", row, column);
     }
 
 
     private void humanTurn() {
-        // TODO: 4/13/16 Come up with the inputs and boundries for placing ships
+        System.out.print("Enter coordinates for your guess : ");
+        Scanner input = new Scanner(System.in);
+        String guess = input.nextLine();
+        boolean guessIsValid = validateGuess(guess);
+
+        if (!guessIsValid) {
+            System.out.println("You Moron look at the effing board! That doesn't even make sense!");
+            humanTurn();
+        }
+
+        if(wasHit(getNextPlayer(),guess)) {
+            System.out.println("HIT!");
+            getCurrentPlayerHits().add(guess);
+        } else {
+            System.out.println("Miss :( ");
+            getCurrentPlayerGuesses().add(guess);
+        }
+
+    }
+
+    private boolean validateGuess(String guess) {
+        char[] guessArray = guess.toCharArray();
+        if (guessArray[0] >= 'A' && guessArray[0] <= 'J') {
+            Integer column = Integer.valueOf(String.valueOf(guessArray[1]));
+            System.out.println(column);
+            if (column >= 1 && column <= 10) {
+                return true;
+            }
+        }
+
+        return false;
+
     }
 
 
