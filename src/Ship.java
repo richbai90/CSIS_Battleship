@@ -32,21 +32,23 @@ public abstract class Ship {
             return length;
         }
 
+
         public ArrayList<ArrayList<String>> getPossibleCoordinates() {
-            String[] directions = {"N","E","S","W"};
+            String[] directions = {"N", "E", "S", "W"};
             ArrayList<ArrayList<String>> possibleCoordinates = new ArrayList<>();
-            for(char row = 'A'; row <= 'J'; row++) {
-                Integer column = 1;
-                while(column <= 10) {
-                    String currentCoordinate = String.valueOf(row) + column;
-                    for(String direction : directions) {
-                        if(Ship.areCoordinatesValid(this.length,currentCoordinate,direction)) {
+            for (char row = 'A'; row <= 'J'; row++) {
+                int column = 1;
+                while (column <= 10) {
+                    String currentCoordinate = String.format("%c%d", row, column);
+                    for (String direction : directions) {
+                        if (Ship.areCoordinatesValid(this.length, currentCoordinate, direction)) {
                             ArrayList<String> newCoord = new ArrayList<>();
                             newCoord.add(currentCoordinate);
                             newCoord.add(direction);
                             possibleCoordinates.add(newCoord);
                         }
                     }
+                    column++;
                 }
                 row++;
             }
@@ -54,17 +56,17 @@ public abstract class Ship {
         }
     }
 
-    public static boolean areCoordinatesValid(Ships ship, String coords, String direction) {
+    static boolean areCoordinatesValid(Ships ship, String coords, String direction) {
         boolean valid = false;
         valid = areCoordinatesValid(ship.length - 1, coords, direction);
         return valid;
     }
 
-    public static boolean wasShipHit(Ships ship, String guess, String shipCoords, String shipDirection) {
+    static boolean wasShipHit(Ships ship, String guess, String shipCoords, String shipDirection) {
         return areCoordinatesValid(ship, shipCoords, shipDirection) && wasShipHit(ship.length, guess, shipCoords, shipDirection);
     }
 
-    public static Ships getShipByIndex(int i) {
+    static Ships getShipByIndex(int i) {
         switch (i) {
             case 0:
                 return Ship.Ships.AIRCRAFT;
@@ -95,7 +97,7 @@ public abstract class Ship {
             case "N":
                 while (i < length) {
                     newRow = (char) (row - i);
-                    possibleCoords = String.valueOf(newRow) + column.toString();
+                    possibleCoords = String.format("%c%d", newRow, column);
                     if (possibleCoords.equalsIgnoreCase(guess)) {
                         return true;
                     }
@@ -104,7 +106,7 @@ public abstract class Ship {
                 break;
             case "E":
                 while (i < length) {
-                    possibleCoords = String.valueOf(row) + (column + i);
+                    possibleCoords = String.format("%c%d", row, column + 1);
                     if (possibleCoords.equalsIgnoreCase(guess)) {
                         return true;
                     }
@@ -114,7 +116,7 @@ public abstract class Ship {
             case "S":
                 while (i < length) {
                     newRow = (char) (row + i);
-                    possibleCoords = String.valueOf(newRow) + column;
+                    possibleCoords = String.format("%c%d", newRow, column);
                     if (possibleCoords.equalsIgnoreCase(guess)) {
                         return true;
                     }
@@ -123,7 +125,7 @@ public abstract class Ship {
                 break;
             case "W":
                 while (i < length) {
-                    possibleCoords = String.valueOf(row) + (column - i);
+                    possibleCoords = String.format("%c%d", row, column - 1);
                     if (possibleCoords.equalsIgnoreCase(guess)) {
                         return true;
                     }

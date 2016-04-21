@@ -123,8 +123,10 @@ public class Battleship implements Game {
 
         // TODO: 4/18/16 Implement guessing portion of the game
 
-        if(getCurrentPlayer().getType() == Player.playerType.HUMAN) {
+        if (getCurrentPlayer().getType() == Player.playerType.HUMAN) {
             humanTurn();
+
+            Ship.Ships.AIRCRAFT.getPossibleCoordinates();
         }
 
     }
@@ -195,7 +197,7 @@ public class Battleship implements Game {
         compPlaceShips = getRandomCompPlaceShips();
     }
 
-    String getRandomCompPlaceShips() {
+    private String getRandomCompPlaceShips() {
         Random compPlaceShips = new Random();
         char row = (char) (compPlaceShips.nextInt(10));
         int column = compPlaceShips.nextInt(10) + 1;
@@ -212,12 +214,12 @@ public class Battleship implements Game {
     private void drawBoard() {
         String board = String.format("%s%n", "_____|_1_|_2_|_3_|_4_|_5_|_6_|_7_|_8_|_9_|_10_");
         char row = 'A';
-        Integer column;
+        int column;
         String currentCoordinate;
         String nextCol;
         while (row <= 'J') {
             column = 1;
-            currentCoordinate = String.valueOf(row) + column;
+            currentCoordinate = String.format("%c%d", row, column);
             ArrayList<ArrayList<String>> ships = getCurrentPlayerShips();
             String nextRow = String.format("__%s__|", String.valueOf(row));
             while (column <= 10) {
@@ -225,13 +227,13 @@ public class Battleship implements Game {
                     nextCol = "_=_|";
                     nextRow += nextCol;
                     column++;
-                    currentCoordinate = String.valueOf(row) + column;
+                    currentCoordinate = String.format("%c%d", row, column);
                     continue;
                 }
 
                 nextRow += "___|";
                 ++column;
-                currentCoordinate = String.valueOf(row) + column;
+                currentCoordinate = String.format("%c%d", row, column);
             }
             board += String.format("%s%n", nextRow);
             ++row;
@@ -319,7 +321,7 @@ public class Battleship implements Game {
             humanTurn();
         }
 
-        if(wasHit(getNextPlayer(),guess)) {
+        if (wasHit(getNextPlayer(), guess)) {
             System.out.println("HIT!");
             getCurrentPlayerHits().add(guess);
         } else {
@@ -330,9 +332,10 @@ public class Battleship implements Game {
     }
 
     private boolean validateGuess(String guess) {
+        //use substring so that we can get all numbers after the first char
+        Integer column = Integer.valueOf(guess.substring(1));
         char[] guessArray = guess.toCharArray();
         if (guessArray[0] >= 'A' && guessArray[0] <= 'J') {
-            Integer column = Integer.valueOf(String.valueOf(guessArray[1]));
             System.out.println(column);
             if (column >= 1 && column <= 10) {
                 return true;
