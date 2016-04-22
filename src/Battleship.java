@@ -118,16 +118,18 @@ public class Battleship implements Game {
             currentPlayer = player1;
             phase = Phases.GUESSING;
             turns = 0;
-            nextTurn();
         }
 
         // TODO: 4/18/16 Implement guessing portion of the game
 
         if (getCurrentPlayer().getType() == Player.playerType.HUMAN) {
             humanTurn();
-
-            Ship.Ships.AIRCRAFT.getPossibleCoordinates();
+        } else {
+            computerTurn();
         }
+
+        currentPlayer = getNextPlayer();
+        ++turns;
 
     }
 
@@ -170,6 +172,8 @@ public class Battleship implements Game {
             playerCoordinates.add(coordinates);
             playerCoordinates.add(direction);
             getCurrentPlayerShips().add(playerCoordinates);
+        } else {
+            placeHumanShips();
         }
 
         // TODO: 4/13/16 Some input to request human placement. Should have boundries. Should take coord. and Direction (NESW)
@@ -178,13 +182,13 @@ public class Battleship implements Game {
     private boolean validatePlacement(Ship.Ships ship, String coordinates, String direction) {
         if (!Ship.areCoordinatesValid(ship, coordinates, direction)) {
             System.out.println("The coordinates or direction you entered were not valid please enter a valid response.");
-            placeHumanShips();
+            return false;
         }
 
         boolean overlap = wasHit(currentPlayer, coordinates);
         if (overlap) {
             System.out.println("Your requested coordinates overlap with an existing ship. Please select again.");
-            placeHumanShips();
+            return false;
         }
 
         return true;
@@ -212,7 +216,8 @@ public class Battleship implements Game {
 
 
     private void drawBoard() {
-        String board = String.format("%s%n", "_____|_1_|_2_|_3_|_4_|_5_|_6_|_7_|_8_|_9_|_10_");
+        //Draw the ships
+        String board = String.format("%s%60s%n", "_____|_1_|_2_|_3_|_4_|_5_|_6_|_7_|_8_|_9_|_10_", "_____|_1_|_2_|_3_|_4_|_5_|_6_|_7_|_8_|_9_|_10_");
         char row = 'A';
         int column;
         String currentCoordinate;
@@ -222,6 +227,7 @@ public class Battleship implements Game {
             currentCoordinate = String.format("%c%d", row, column);
             ArrayList<ArrayList<String>> ships = getCurrentPlayerShips();
             String nextRow = String.format("__%s__|", String.valueOf(row));
+            String nextRowForTrackingHitOrMiss = String.format("%20s", String.format("__%c__|", row));
             while (column <= 10) {
                 if (wasHit(currentPlayer, currentCoordinate)) {
                     nextCol = "_=_|";
@@ -235,11 +241,27 @@ public class Battleship implements Game {
                 ++column;
                 currentCoordinate = String.format("%c%d", row, column);
             }
-            board += String.format("%s%n", nextRow);
+            while (column > 10 && column <= 20) {
+                currentCoordinate = String.format("%c%d", row, column - 10);
+                ArrayList<String> currentPlayerGuesses = getCurrentPlayerGuesses();
+                ArrayList<String> currentPlayerHits = getCurrentPlayerHits();
+                if (currentPlayerGuesses.indexOf(currentCoordinate) > -1) {
+                    if (currentPlayerHits.indexOf(currentCoordinate) > -1) {
+                        nextCol = "_x_|";
+                    } else {
+                        nextCol = "_o_|";
+                    }
+                } else {
+                    nextCol = "___|";
+                }
+                nextRowForTrackingHitOrMiss += nextCol;
+                ++column;
+            }
+            board += String.format("%s%20s%n", nextRow, nextRowForTrackingHitOrMiss);
             ++row;
         }
 
-        System.out.print(board);
+        System.out.println(board);
     }
 
     private void showMenu() {
@@ -326,8 +348,9 @@ public class Battleship implements Game {
             getCurrentPlayerHits().add(guess);
         } else {
             System.out.println("Miss :( ");
-            getCurrentPlayerGuesses().add(guess);
         }
+
+        getCurrentPlayerGuesses().add(guess);
 
     }
 
@@ -336,7 +359,6 @@ public class Battleship implements Game {
         Integer column = Integer.valueOf(guess.substring(1));
         char[] guessArray = guess.toCharArray();
         if (guessArray[0] >= 'A' && guessArray[0] <= 'J') {
-            System.out.println(column);
             if (column >= 1 && column <= 10) {
                 return true;
             }
