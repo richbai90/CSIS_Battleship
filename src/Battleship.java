@@ -1,6 +1,10 @@
+import org.omg.CORBA.portable.ApplicationException;
+
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
 /*****************************************
@@ -199,15 +203,16 @@ class Battleship implements Game {
         for (int i = 0; i < 5; i++) {
             ship = Ship.getShipByIndex(i);
             ArrayList<ArrayList<String>> possibleCoords = ship.getPossibleCoordinates();
+            ArrayList<ArrayList<String>> finalCoords = ship.getPossibleCoordinates();
             //Remove all invalid placements
             for (int coord = 0; coord < possibleCoords.size(); coord++) {
                 ArrayList<String> coordinate = possibleCoords.get(coord);
                 if (!validatePlacement(ship, coordinate.get(0), coordinate.get(1))) {
-                    possibleCoords.remove(coord);
+                    finalCoords.remove(possibleCoords.get(coord));
                 }
             }
 
-            ArrayList<String> randomPlacement = possibleCoords.get(rand.nextInt(possibleCoords.size()));
+            ArrayList<String> randomPlacement = finalCoords.get(rand.nextInt(possibleCoords.size()));
             ArrayList<ArrayList<String>> coordinate = getCurrentPlayerShips();
             coordinate.add(randomPlacement);
             System.out.println(coordinate);
@@ -261,18 +266,18 @@ class Battleship implements Game {
 //        compPlaceShips = getRandomCompPlaceShips();
 //    }
 
-    private String getRandomCompPlaceShips() {
-        Random compPlaceShips = new Random();
-        char row = (char) (compPlaceShips.nextInt(10));
-        int column = compPlaceShips.nextInt(10) + 1;
-        return String.format("%c%d", row, column);
-        //getcurrentplayerships
-        //stored in an ArrayList coordinate and direction [A1, E]
-        //char cast to string for NESW
-        //String.valueOf(char) or String.format
-        //each array list need to be placed into currentplayer arraylist in correct order large to small
-
-    }
+//    private String getRandomCompPlaceShips() {
+//        Random compPlaceShips = new Random();
+//        char row = (char) (compPlaceShips.nextInt(10));
+//        int column = compPlaceShips.nextInt(10) + 1;
+//        return String.format("%c%d", row, column);
+//        //getcurrentplayerships
+//        //stored in an ArrayList coordinate and direction [A1, E]
+//        //char cast to string for NESW
+//        //String.valueOf(char) or String.format
+//        //each array list need to be placed into currentplayer arraylist in correct order large to small
+//
+//    }
 
 
     private void drawBoard() {
@@ -408,13 +413,28 @@ class Battleship implements Game {
         // TODO: 4/13/16 Come up with some randomization for the computers turn
         String compTurn;
         compTurn = getRandomCompTurn();
+        boolean compTurnIsValid = validateGuess(compTurn);
+
+        if (!compTurnIsValid) {
+            throw(new RuntimeException("Erica EFFED IT UP!"));
+        }
+
+        if (wasHit(getNextPlayer(), compTurn)){
+            System.out.println("HIT! :(");
+            getCurrentPlayerHits().add(compTurn);
+        } else {
+            System.out.println("Miss!!!");
+        }
+
+        getCurrentPlayerGuesses().add(compTurn);
     }
 
     private String getRandomCompTurn() {
         Random compGuess = new Random();
-        char row = (char) (compGuess.nextInt(10));
-        int column = compGuess.nextInt(10) + 1;
+        char row = (char) (compGuess.nextInt(10) + 65);
+        int column = compGuess.nextInt(9) + 1;
         return String.format("%c%d", row, column);
+
     }
 
 

@@ -50,7 +50,6 @@ public abstract class Ship {
                     }
                     column++;
                 }
-                row++;
             }
             return possibleCoordinates;
         }
