@@ -125,7 +125,7 @@ public abstract class Ship {
                 break;
             case "W":
                 while (i < length) {
-                    possibleCoords = String.format("%c%d", row, column - 1);
+                    possibleCoords = String.format("%c%d", row, column - i);
                     if (possibleCoords.equalsIgnoreCase(guess)) {
                         return true;
                     }

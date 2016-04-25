@@ -35,8 +35,12 @@ public class Player {
         this.name = name;
     }
 
-    public void setWins() {
+    public void setWins(int wins) {
         this.wins = wins;
+    }
+
+    public void incrementWins() {
+        ++wins;
     }
 
     public void setScore() {

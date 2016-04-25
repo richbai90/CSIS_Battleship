@@ -8,7 +8,7 @@ import java.util.stream.Stream;
  * Date : 4/6/16
  * Assignment: Battleship
  ******************************************/
-public class Battleship implements Game {
+class Battleship implements Game {
 
 
     private int turns = 0;
@@ -22,16 +22,25 @@ public class Battleship implements Game {
     private ArrayList<String> player2Guesses = new ArrayList<>();
     private ArrayList<String> player1Hits = new ArrayList<>();
     private ArrayList<String> player2Hits = new ArrayList<>();
-    private int[] player1ShipHits = new int[5];
-    private int[] player2ShipHits = new int[5];
-    private int[] player1ShipsLeft;
-    private int[] player2ShipsLeft;
+    private int[] player1ShipHits = new int[]{5, 4, 3, 3, 2};
+    private int[] player2ShipHits = new int[]{5, 4, 3, 3, 2};
+    private boolean isGameOver = false;
+    private Player winner;
+
+    public boolean isGameOver() {
+        return isGameOver;
+    }
+
+    public Player getWinner() {
+        return winner;
+    }
+
 
     private enum Phases {PLACEMENT, GUESSING}
 
     private Phases phase = Phases.PLACEMENT;
 
-    public Battleship(Player player1, Player player2) {
+    Battleship(Player player1, Player player2) {
         this.player1 = player1;
         this.player2 = player2;
         this.currentPlayer = player1;
@@ -41,8 +50,12 @@ public class Battleship implements Game {
 
     //hitsLeft(ship : int)
 
+    private boolean wasHit(Player player, String guess) {
+        return wasHit(player, guess, true);
+    }
 
-    public boolean wasHit(Player player, String guess) {
+
+    private boolean wasHit(Player player, String guess, boolean commit) {
         final int AIRCRAFT = 0;
         final int BATTLESHIP = 1;
         final int SUBMARINE = 2;
@@ -82,12 +95,51 @@ public class Battleship implements Game {
             ship++;
         }
 
+        if (shipWasHit && phase == Phases.GUESSING && commit) {
+            int[] hitsLeft = getPlayerShipHits(player);
+            --hitsLeft[ship - 1];
+            setPlayerShipHits(player, hitsLeft);
+            if (getCurrentPlayer().getType() == Player.playerType.HUMAN) {
+                System.out.println((hitsLeft[ship - 1] > 0) ? "HIT!" : String.format("Sunk %s's %s!", player.getName(), Ship.getShipByIndex(ship - 1).getName()));
+            }
+        }
+
         return shipWasHit;
     }
 
-    private boolean shipsLeft(Player player) {
-        //make code to determine how many ships are left
-        return false;
+    private int[] getPlayerShipHits(Player player) {
+        return (player.getPlayerNumber() == 1) ? player1ShipHits : player2ShipHits;
+    }
+
+    private void setPlayerShipHits(Player player, int[] hitsLeft) {
+        if (player.getPlayerNumber() == 1) {
+            player1ShipHits = hitsLeft;
+        } else {
+            player2ShipHits = hitsLeft;
+        }
+    }
+
+    private boolean shipsLeft() {
+        boolean shipsLeft = false;
+        Player player = getNextPlayer();
+        if (player.getPlayerNumber() == 1) {
+
+            for (int hits : player1ShipHits) {
+                if (hits > 0) {
+                    shipsLeft = true;
+                    break;
+                }
+            }
+        } else {
+            for (int hits : player2ShipHits) {
+                System.out.println(hits);
+                if (hits > 0) {
+                    shipsLeft = true;
+                    break;
+                }
+            }
+        }
+        return shipsLeft;
     }
 
     @Override
@@ -128,6 +180,12 @@ public class Battleship implements Game {
             computerTurn();
         }
 
+        if (!shipsLeft()) {
+            isGameOver = true;
+            getNextPlayer().incrementWins();
+            winner = getCurrentPlayer();
+        }
+
         currentPlayer = getNextPlayer();
         ++turns;
 
@@ -135,28 +193,28 @@ public class Battleship implements Game {
 
     //todo: This is so that erica can test validation and compare what she's doing with what rich did.
 
-//    public void placeComputerShips(Player player) {
-//        Ship.Ships ship;
-//        Random rand = new Random();
-//        for (int i = 0; i < 5; i++) {
-//            ship = Ship.getShipByIndex(i);
-//            ArrayList<ArrayList<String>> possibleCoords = ship.getPossibleCoordinates();
-//            //Remove all invalid placements
-//            for (int coord = 0; coord < possibleCoords.size(); coord++) {
-//                ArrayList<String> coordinate = possibleCoords.get(coord);
-//                if (!validatePlacement(ship, coordinate.get(0), coordinate.get(1))) {
-//                    possibleCoords.remove(coord);
-//                }
-//            }
-//
-//            ArrayList<String> randomPlacement = possibleCoords.get(rand.nextInt(possibleCoords.size()));
-//            getCurrentPlayerShips().add(randomPlacement);
-//          char row = (char) (rand.nextInt(10) + 65);
-//            Integer column = rand.nextInt(10);
-//            System.out.println(row);
-//        }
-//        // TODO: 4/13/16 Some randomization to place and store the position of computer ships
-//    }
+    public void placeComputerShips() {
+        Ship.Ships ship;
+        Random rand = new Random();
+        for (int i = 0; i < 5; i++) {
+            ship = Ship.getShipByIndex(i);
+            ArrayList<ArrayList<String>> possibleCoords = ship.getPossibleCoordinates();
+            //Remove all invalid placements
+            for (int coord = 0; coord < possibleCoords.size(); coord++) {
+                ArrayList<String> coordinate = possibleCoords.get(coord);
+                if (!validatePlacement(ship, coordinate.get(0), coordinate.get(1))) {
+                    possibleCoords.remove(coord);
+                }
+            }
+
+            ArrayList<String> randomPlacement = possibleCoords.get(rand.nextInt(possibleCoords.size()));
+            ArrayList<ArrayList<String>> coordinate = getCurrentPlayerShips();
+            coordinate.add(randomPlacement);
+            System.out.println(coordinate);
+            setCurrentPlayerShips(coordinate);
+        }
+        // TODO: 4/13/16 Some randomization to place and store the position of computer ships
+    }
 
     private void placeHumanShips() {
         Ship.Ships ship = Ship.getShipByIndex(turns);
@@ -185,9 +243,11 @@ public class Battleship implements Game {
             return false;
         }
 
-        boolean overlap = wasHit(currentPlayer, coordinates);
+        boolean overlap = wasHit(currentPlayer, coordinates, false);
         if (overlap) {
-            System.out.println("Your requested coordinates overlap with an existing ship. Please select again.");
+            if (currentPlayer.getType() == Player.playerType.HUMAN) {
+                System.out.println("Your requested coordinates overlap with an existing ship. Please select again.");
+            }
             return false;
         }
 
@@ -195,11 +255,11 @@ public class Battleship implements Game {
     }
 
 
-    private void placeComputerShips() {
-        // TODO: 4/13/16 Some randomization to place and store the position of computer ships
-        String compPlaceShips;
-        compPlaceShips = getRandomCompPlaceShips();
-    }
+//    private void placeComputerShips() {
+//        // TODO: 4/13/16 Some randomization to place and store the position of computer ships
+//        String compPlaceShips;
+//        compPlaceShips = getRandomCompPlaceShips();
+//    }
 
     private String getRandomCompPlaceShips() {
         Random compPlaceShips = new Random();
@@ -229,7 +289,7 @@ public class Battleship implements Game {
             String nextRow = String.format("__%s__|", String.valueOf(row));
             String nextRowForTrackingHitOrMiss = String.format("%20s", String.format("__%c__|", row));
             while (column <= 10) {
-                if (wasHit(currentPlayer, currentCoordinate)) {
+                if (wasHit(currentPlayer, currentCoordinate, false)) {
                     nextCol = "_=_|";
                     nextRow += nextCol;
                     column++;
@@ -290,6 +350,16 @@ public class Battleship implements Game {
         return player2ShipCoordinates;
     }
 
+    public void setCurrentPlayerShips(ArrayList<ArrayList<String>> coordinates) {
+        if (currentPlayer.getPlayerNumber() == 1) {
+            player1ShipCoordinates = coordinates;
+        } else {
+            player1ShipCoordinates = coordinates;
+        }
+
+        System.out.println(getCurrentPlayerShips());
+    }
+
     public ArrayList<String> getCurrentPlayerHits() {
         if (currentPlayer.getPlayerNumber() == 1) {
             return player1Hits;
@@ -304,6 +374,22 @@ public class Battleship implements Game {
         }
 
         return player2Guesses;
+    }
+
+    public int[] getCurrentPlayerShipHits() {
+        if (currentPlayer.getPlayerNumber() == 1) {
+            return player1ShipHits;
+        } else {
+            return player2ShipHits;
+        }
+    }
+
+    public void setCurrentPlayerShipHits(int[] shipHits) {
+        if (currentPlayer.getPlayerNumber() == 1) {
+            player1ShipHits = shipHits;
+        } else {
+            player2ShipHits = shipHits;
+        }
     }
 
     @Override
@@ -324,7 +410,7 @@ public class Battleship implements Game {
         compTurn = getRandomCompTurn();
     }
 
-    String getRandomCompTurn() {
+    private String getRandomCompTurn() {
         Random compGuess = new Random();
         char row = (char) (compGuess.nextInt(10));
         int column = compGuess.nextInt(10) + 1;
@@ -344,7 +430,6 @@ public class Battleship implements Game {
         }
 
         if (wasHit(getNextPlayer(), guess)) {
-            System.out.println("HIT!");
             getCurrentPlayerHits().add(guess);
         } else {
             System.out.println("Miss :( ");
